@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual Técnico 3D — Conversor 100% Madeira (Solução 1)</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tipografia Editorial + Técnica -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Three.js ES Modules via jsDelivr -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            editorial: {
+              bg: '#F3F3F0',
+              surface: '#EAEAE5',
+              ink: '#161614',
+              muted: '#6E6E68',
+              line: '#DFDFD8',
+              coral: '#E86A42',
+              amber: '#EFA94A',
+              lavender: '#A6B6E8',
+              sky: '#B5CDEE',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #F3F3F0;
+      color: #1A1A18;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Palco 3D Atmosférico (Gradiente pôr-do-sol com granulação editorial) */
+    .sunset-stage {
+      background:
+        radial-gradient(ellipse 95% 75% at 52% 96%, rgba(244, 128, 66, 0.88) 0%, rgba(247, 179, 108, 0.56) 38%, rgba(212, 198, 224, 0.35) 68%, transparent 100%),
+        linear-gradient(180deg, #AEC2DC 0%, #C8CDE2 36%, #EBD7C9 68%, #F49E62 100%);
+      position: relative;
+    }
+    .sunset-stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.16;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    /* Glass Pills minimalistas sobre o palco 3D */
+    .glass-pill {
+      background: rgba(243, 243, 240, 0.84);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow: 0 4px 18px rgba(26, 26, 24, 0.08);
+    }
+
+    /* Mini medidores verticais (assinatura visual da referência) */
+    .v-gauge {
+      width: 6px;
+      height: 36px;
+      border-radius: 999px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .v-gauge-warm { background: linear-gradient(180deg, #F07552 0%, #F5CE7A 52%, #B5CDEE 100%); }
+    .v-gauge-cool { background: linear-gradient(180deg, #F07552 0%, #D9B7D8 50%, #9BBEEB 100%); }
+    .v-gauge-sky  { background: linear-gradient(180deg, #9BBEEB 0%, #D5E2F4 55%, #FFFFFF 100%); }
+    .v-gauge-tick {
+      position: absolute;
+      left: -3px;
+      width: 12px;
+      height: 1.5px;
+      background: #1A1A18;
+      border-radius: 2px;
+      transition: top 0.14s ease-out;
+    }
+
+    /* Barra horizontal gradiente interativa */
+    .elevation-track {
+      position: relative;
+      height: 46px;
+      border-radius: 14px;
+      background: #D6E3F3;
+      overflow: hidden;
+      cursor: ew-resize;
+      touch-action: none;
+      user-select: none;
+    }
+    .elevation-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      border-radius: 14px;
+      background: linear-gradient(90deg, #F7E19E 0%, #F3DFB4 38%, #CAD5F3 72%, #A6C3F8 100%);
+      transition: width 0.06s linear;
+    }
+
+    /* Sliders finos minimalistas */
+    input[type="range"].swiss-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      border-radius: 999px;
+      background: #D5D5CE;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].swiss-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #1A1A18;
+      border: 2px solid #F3F3F0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+      transition: transform 0.12s ease;
+    }
+    input[type="range"].swiss-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #F3F3F0; }
+    ::-webkit-scrollbar-thumb { background: #D2D2CA; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #B8B8AE; }
+
+    /* Componentes Swiss Editorial — Aba 01 Montagem */
+    .sunset-progress-fill {
+      background: linear-gradient(90deg, #E86A42 0%, #EFA94A 56%, #A6B6E8 100%);
+      transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .safety-callout {
+      position: relative;
+      background: rgba(232, 106, 66, 0.06);
+      border-radius: 0 10px 10px 0;
+      padding: 12px 14px 12px 16px;
+    }
+    .safety-callout::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 3px;
+      background: linear-gradient(180deg, #E86A42 0%, #EFA94A 100%);
+    }
+    .leader-dots {
+      flex: 1 1 auto;
+      min-width: 14px;
+      border-bottom: 1px dotted #C6C6BC;
+      margin: 0 8px;
+      transform: translateY(-4px);
+    }
+
+    #viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+  </style>
+</head>
+<body class="bg-editorial-bg text-editorial-ink lg:h-screen lg:w-screen lg:overflow-hidden">
+
+  <!-- LAYOUT RESPONSIVO: Desktop 2 Colunas (Palco 3D 1fr + Ficha Editorial 430px) | Mobile Vertical -->
+  <div class="flex flex-col lg:grid lg:grid-cols-[1fr_430px] w-full min-h-screen lg:h-screen lg:overflow-hidden">
+
+    <!-- ===================================================================== -->
+    <!-- PALCO 3D ATMOSFÉRICO                                                  -->
+    <!-- ===================================================================== -->
+    <section class="sunset-stage relative w-full h-[54vh] min-h-[370px] sm:h-[60vh] lg:h-full overflow-hidden select-none">
+
+      <!-- Canvas Three.js -->
+      <div id="viewport" class="relative z-[1] w-full h-full"></div>
+
+      <!-- CONTROLES FLUTUANTES SUPERIORES -->
+      <div class="absolute top-3.5 left-3.5 right-3.5 z-10 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+
+        <!-- Esquerda: 3 Pontos Editoriais + Câmeras -->
+        <div class="flex items-start gap-2.5 pointer-events-auto">
+          <div class="hidden sm:flex flex-col gap-1.5 pt-2 pl-0.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#F07552]"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-[#F3C052]"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-[#B5CDEE]"></span>
+          </div>
+          <div class="glass-pill rounded-full p-1 flex items-center gap-0.5">
+            <button data-cam="iso" class="cam-btn px-3 py-1.5 rounded-full text-[11px] font-medium bg-editorial-ink text-white transition">
+              Iso
+            </button>
+            <button data-cam="side" class="cam-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/75 hover:text-editorial-ink transition">
+              Lateral
+            </button>
+            <button data-cam="joint" class="cam-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/75 hover:text-editorial-ink transition">
+              Articulação
+            </button>
+            <button data-cam="lock" class="cam-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/75 hover:text-editorial-ink transition">
+              Trava
+            </button>
+          </div>
+        </div>
+
+        <!-- Direita: Toggles + Explodir -->
+        <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
+          <div class="flex items-center gap-1.5">
+            <button id="btn-translucent" class="glass-pill px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink flex items-center gap-1.5 transition">
+              <span id="dot-translucent" class="w-1.5 h-1.5 rounded-full bg-editorial-coral"></span>
+              Tampo Raio-X
+            </button>
+            <button id="btn-desk" class="glass-pill px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink flex items-center gap-1.5 transition">
+              <span id="dot-desk" class="w-1.5 h-1.5 rounded-full bg-editorial-ink"></span>
+              Mesa 73cm
+            </button>
+          </div>
+          <div class="glass-pill px-3 py-1.5 rounded-full flex items-center gap-2.5">
+            <span class="text-[10px] font-mono tracking-wider uppercase text-editorial-muted">Explodir</span>
+            <input id="slider-explode" type="range" min="0" max="100" step="1" value="0" class="swiss-slider w-20 sm:w-24" />
+            <span id="lbl-explode" class="text-[10px] font-mono font-semibold text-editorial-ink w-7 text-right">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badge de Peça Destacada -->
+      <div id="highlight-badge" class="hidden absolute top-24 left-1/2 -translate-x-1/2 z-10 glass-pill px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium text-editorial-ink">
+        <span class="w-2 h-2 rounded-full bg-editorial-coral"></span>
+        <span id="highlight-label">Peça destacada</span>
+        <button id="btn-clear-highlight" class="ml-1 text-editorial-muted hover:text-editorial-ink font-mono text-xs">✕</button>
+      </div>
+
+      <!-- DOCK INFERIOR ÚNICO: Níveis + Simular Destravamento -->
+      <div class="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-10 max-w-[94%] pointer-events-auto">
+        <div class="glass-pill rounded-full p-1.5 flex items-center gap-1 overflow-x-auto">
+          <button data-preset="4.37" class="preset-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/80 hover:bg-white/70 whitespace-nowrap transition">
+            Fechado
+          </button>
+          <button data-preset="35" class="preset-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/80 hover:bg-white/70 whitespace-nowrap transition">
+            N1 35°
+          </button>
+          <button data-preset="47" class="preset-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/80 hover:bg-white/70 whitespace-nowrap transition">
+            N2 47°
+          </button>
+          <button data-preset="59" class="preset-btn px-3 py-1.5 rounded-full text-[11px] font-semibold bg-white text-editorial-ink shadow-sm ring-1 ring-editorial-amber whitespace-nowrap transition">
+            Em Pé
+          </button>
+          <span class="w-px h-4 bg-editorial-line mx-0.5 shrink-0"></span>
+          <button id="btn-unlock" class="px-3.5 py-1.5 rounded-full text-[11px] font-medium bg-editorial-ink text-white hover:bg-black whitespace-nowrap transition flex items-center gap-1.5">
+            <span>▶</span> Simular Destravamento
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- FICHA TÉCNICA EDITORIAL (#F3F3F0)                                     -->
+    <!-- ===================================================================== -->
+    <aside class="w-full lg:w-[430px] bg-editorial-bg border-t lg:border-t-0 lg:border-l border-editorial-line flex flex-col lg:h-full min-h-0">
+
+      <!-- BLOCO SUPERIOR FIXO: Resumo Editorial + Medidores + Barra de Elevação -->
+      <div class="px-5 pt-5 pb-4 border-b border-editorial-line shrink-0 space-y-4">
+
+        <!-- Linha de Metadados -->
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-[11px] tracking-[0.14em] uppercase text-editorial-ink font-medium">
+                CONVERSOR 100% MADEIRA
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#F07552]"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#F3C052]"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#B5CDEE]"></span>
+              </span>
+            </div>
+            <p class="font-mono text-[9.5px] tracking-[0.09em] uppercase text-editorial-muted mt-0.5">
+              SOLUÇÃO 1 • CREMALHEIRA NA BASE + ESCORA EM U
+            </p>
+          </div>
+          <span class="font-mono text-[11px] text-editorial-muted shrink-0">80×60 CM</span>
+        </div>
+
+        <!-- Leitura Principal de Altura + Ícone Geométrico Reativo -->
+        <div class="flex items-end justify-between gap-3">
+          <div class="flex items-baseline gap-1.5 leading-none">
+            <span id="hero-height" class="text-[44px] font-normal tracking-tight text-editorial-ink tabular-nums">114.0</span>
+            <span class="text-lg font-light text-editorial-muted">cm</span>
+          </div>
+
+          <!-- Ícone SVG estilo sol/leque geométrico (acompanha abertura) -->
+          <svg id="hero-sun-svg" viewBox="0 0 84 44" class="w-20 h-11 text-editorial-ink shrink-0" fill="none">
+            <line x1="6" y1="40" x2="78" y2="40" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            <g id="sun-rays" stroke="currentColor" stroke-width="1.35" stroke-linecap="round">
+              <line x1="42" y1="36" x2="42" y2="8" />
+              <line x1="42" y1="36" x2="54" y2="11" />
+              <line x1="42" y1="36" x2="64" y2="18" />
+              <line x1="42" y1="36" x2="71" y2="28" />
+              <line x1="42" y1="36" x2="30" y2="11" />
+              <line x1="42" y1="36" x2="20" y2="18" />
+              <line x1="42" y1="36" x2="13" y2="28" />
+            </g>
+            <circle cx="42" cy="36" r="7" fill="#F3F3F0" />
+            <path d="M 32 39 A 10 10 0 0 1 52 39" stroke="currentColor" stroke-width="1.4" fill="#F3F3F0" />
+          </svg>
+        </div>
+
+        <!-- Grade 2×2 de Métricas com Mini Medidores Verticais -->
+        <div class="grid grid-cols-2 gap-x-5 gap-y-3 pt-0.5">
+
+          <!-- Elevação -->
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-mono text-[9.5px] tracking-[0.11em] uppercase text-editorial-muted">Elevação</div>
+              <div id="metric-lift" class="text-[16px] font-normal text-editorial-ink tabular-nums mt-0.5">+41.0 cm</div>
+            </div>
+            <div class="v-gauge v-gauge-warm">
+              <span id="tick-lift" class="v-gauge-tick" style="top: 12%"></span>
+            </div>
+          </div>
+
+          <!-- Inclinação -->
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-mono text-[9.5px] tracking-[0.11em] uppercase text-editorial-muted">Inclinação</div>
+              <div id="metric-angle" class="text-[16px] font-normal text-editorial-ink tabular-nums mt-0.5">59°</div>
+            </div>
+            <div class="v-gauge v-gauge-cool">
+              <span id="tick-angle" class="v-gauge-tick" style="top: 12%"></span>
+            </div>
+          </div>
+
+          <!-- Trava Ativa -->
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-mono text-[9.5px] tracking-[0.11em] uppercase text-editorial-muted">Trava Ativa</div>
+              <div id="metric-lock" class="text-[15px] font-normal text-editorial-ink mt-0.5">N3 • Em Pé</div>
+            </div>
+            <div class="v-gauge v-gauge-warm">
+              <span id="tick-lock" class="v-gauge-tick" style="top: 14%"></span>
+            </div>
+          </div>
+
+          <!-- Folga acima da mesa -->
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-mono text-[9.5px] tracking-[0.11em] uppercase text-editorial-muted">Folga Mesa</div>
+              <div id="metric-clearance" class="text-[15px] font-normal text-editorial-ink tabular-nums mt-0.5">1.0 cm</div>
+            </div>
+            <div class="v-gauge v-gauge-sky">
+              <span id="tick-clearance" class="v-gauge-tick" style="top: 24%"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Barra Horizontal Gradiente Interativa (Arraste para subir/descer) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[9.5px] tracking-[0.11em] uppercase text-editorial-muted">
+              % Abertura (Arraste p/ Regular)
+            </span>
+            <span id="bar-status-label" class="font-mono text-[9.5px] tracking-wider uppercase text-editorial-muted">
+              Z Trava: -22.3 cm
+            </span>
+          </div>
+          <div id="elevation-bar" class="elevation-track" role="slider" aria-label="Regular altura do conversor" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+            <div id="elevation-fill" class="elevation-fill" style="width: 100%"></div>
+            <div class="relative z-10 h-full px-4 flex items-center justify-between pointer-events-none">
+              <div class="flex items-baseline gap-0.5">
+                <span id="bar-percent" class="text-xl font-normal text-editorial-ink tabular-nums">100</span>
+                <span class="text-xs text-editorial-muted">%</span>
+              </div>
+              <span id="bar-hint" class="font-mono text-[10px] text-editorial-ink/70 uppercase tracking-wider">
+                N3 • 59°
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- NAVEGAÇÃO 4 ABAS EDITORIAIS -->
+      <nav class="grid grid-cols-4 border-b border-editorial-line bg-editorial-bg shrink-0 px-2">
+        <button data-tab="montagem" class="tab-btn py-3 font-mono text-[10.5px] tracking-wider uppercase border-b-2 border-editorial-ink text-editorial-ink font-semibold transition">
+          01 Montagem
+        </button>
+        <button data-tab="cortes" class="tab-btn py-3 font-mono text-[10.5px] tracking-wider uppercase border-b-2 border-transparent text-editorial-muted hover:text-editorial-ink transition">
+          02 Cortes
+        </button>
+        <button data-tab="custos" class="tab-btn py-3 font-mono text-[10.5px] tracking-wider uppercase border-b-2 border-transparent text-editorial-muted hover:text-editorial-ink transition">
+          03 Custos
+        </button>
+        <button data-tab="ergo" class="tab-btn py-3 font-mono text-[10.5px] tracking-wider uppercase border-b-2 border-transparent text-editorial-muted hover:text-editorial-ink transition">
+          04 Ergo
+        </button>
+      </nav>
+
+      <!-- CONTEÚDO ROLÁVEL DAS ABAS -->
+      <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+        <!-- ABA 01: MONTAGEM (Swiss Editorial Minimalist) -->
+        <div id="tab-montagem" class="tab-panel space-y-5 pb-2">
+
+          <!-- 1. Cabeçalho de Progresso Swiss + Barra Contínua Pôr-do-Sol -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div id="step-pills" class="flex items-center gap-1 flex-wrap"></div>
+              <button id="btn-show-all" class="px-2.5 py-1 rounded-full border border-editorial-line bg-transparent font-mono text-[10px] uppercase tracking-[0.08em] text-editorial-muted hover:border-editorial-ink hover:text-editorial-ink transition shrink-0">
+                Ver Completo
+              </button>
+            </div>
+            <div class="w-full h-[2px] bg-editorial-line rounded-full overflow-hidden">
+              <div id="step-progress-bar" class="h-full sunset-progress-fill rounded-full" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <!-- 2. Conteúdo Editorial do Passo (Sem caixas aninhadas) -->
+          <div id="step-detail-card" class="space-y-4"></div>
+
+          <!-- 3. Controles de Navegação Proporcionais -->
+          <div class="pt-3.5 border-t border-editorial-line flex items-center justify-between gap-3">
+            <button id="btn-prev-step" class="px-3.5 py-2 rounded-full text-xs font-medium bg-transparent border border-[#CFCFC6] text-editorial-ink hover:border-editorial-ink disabled:opacity-30 disabled:hover:border-[#CFCFC6] transition shrink-0">
+              ← Anterior
+            </button>
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span id="next-step-preview" class="hidden sm:inline-block font-mono text-[10px] text-editorial-muted truncate max-w-[125px]"></span>
+              <button id="btn-next-step" class="px-4 py-2 rounded-full text-xs font-medium bg-[#161614] text-[#F3F3F0] hover:bg-black disabled:opacity-30 transition shrink-0">
+                Próximo Passo →
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Legenda Arquitetônica de Camadas X (Com linhas pontilhadas e sincronia 3D) -->
+          <div class="pt-4 border-t border-editorial-line space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-editorial-ink">
+                Camadas X · Folga 2 mm
+              </span>
+              <span class="font-mono text-[9.5px] uppercase tracking-[0.08em] text-editorial-muted">
+                Zero Colisão · Clique p/ Destacar
+              </span>
+            </div>
+            <div id="x-layers-list" class="space-y-0.5"></div>
+          </div>
+
+        </div>
+
+        <!-- ABA 02: CORTES -->
+        <div id="tab-cortes" class="tab-panel hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-editorial-muted">Clique em qualquer peça para destacar em coral no 3D.</span>
+            <button id="btn-clear-cuts" class="font-mono text-[10px] uppercase text-editorial-muted hover:text-editorial-ink">Limpar</button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div class="rounded-xl bg-white border border-editorial-line p-2.5 text-center">
+              <div class="font-mono text-[9.5px] uppercase text-editorial-muted">Peças</div>
+              <div class="text-sm font-semibold text-editorial-ink mt-0.5">17 itens</div>
+            </div>
+            <div class="rounded-xl bg-white border border-editorial-line p-2.5 text-center">
+              <div class="font-mono text-[9.5px] uppercase text-editorial-muted">Chapa</div>
+              <div class="text-sm font-semibold text-editorial-ink mt-0.5">Naval 18mm</div>
+            </div>
+            <div class="rounded-xl bg-white border border-editorial-line p-2.5 text-center">
+              <div class="font-mono text-[9.5px] uppercase text-editorial-muted">Bastão</div>
+              <div class="text-sm font-semibold text-editorial-ink mt-0.5">Ø20×66 cm</div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-white border border-editorial-line overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-editorial-line bg-editorial-surface/60 font-mono text-[9.5px] uppercase text-editorial-muted">
+                  <th class="py-2.5 px-3">Peça</th>
+                  <th class="py-2.5 px-1.5 text-center">Qtd</th>
+                  <th class="py-2.5 px-3 text-right">Medidas (cm)</th>
+                </tr>
+              </thead>
+              <tbody id="cutlist-tbody" class="divide-y divide-editorial-line/70 text-[11.5px]"></tbody>
+            </table>
+          </div>
+
+          <div class="rounded-2xl bg-white border border-editorial-line p-3.5 text-[11px] font-mono space-y-1 text-editorial-muted">
+            <div class="text-editorial-ink font-semibold uppercase text-[10px]">Dentes da Cremalheira (Centro em Y = 2,0 cm / R = 1,05 cm):</div>
+            <div>• N3 (59° Em Pé): <strong class="text-editorial-ink">Z = -22,31 cm</strong> (5,9 cm da borda traseira)</div>
+            <div>• N2 (47° Alto): <strong class="text-editorial-ink">Z = -3,04 cm</strong> (25,2 cm da borda traseira)</div>
+            <div>• N1 (35° Médio): <strong class="text-editorial-ink">Z = +10,17 cm</strong> (38,4 cm da borda traseira)</div>
+            <div>• Repouso Fechado: <strong class="text-editorial-ink">Z = +26,27 cm</strong> (1,9 cm da borda frontal)</div>
+          </div>
+        </div>
+
+        <!-- ABA 03: CUSTOS -->
+        <div id="tab-custos" class="tab-panel hidden space-y-3">
+          <div class="rounded-2xl bg-white border border-editorial-line p-4 flex items-center justify-between">
+            <div>
+              <div class="font-mono text-[9.5px] uppercase tracking-wider text-editorial-muted">Total Estimado • Cabo Frio / RJ</div>
+              <div class="text-xs text-editorial-muted mt-0.5">Desmarque o que já tiver em casa</div>
+            </div>
+            <div id="hardware-total" class="text-2xl font-normal font-mono text-editorial-ink tabular-nums">
+              R$ 168,00
+            </div>
+          </div>
+
+          <div id="hardware-container" class="space-y-1.5"></div>
+        </div>
+
+        <!-- ABA 04: ERGONOMIA -->
+        <div id="tab-ergo" class="tab-panel hidden space-y-3.5">
+          <div class="rounded-2xl bg-white border border-editorial-line p-4 space-y-4">
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs">
+                <label for="slider-desk-h" class="font-mono uppercase tracking-wider text-[10.5px] text-editorial-muted">Altura da Mesa Fixa</label>
+                <span id="val-desk-h" class="font-mono font-semibold text-editorial-ink">73 cm</span>
+              </div>
+              <input id="slider-desk-h" type="range" min="68" max="80" step="1" value="73" class="swiss-slider w-full" />
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-xs">
+                <label for="slider-user-h" class="font-mono uppercase tracking-wider text-[10.5px] text-editorial-muted">Sua Estatura</label>
+                <span id="val-user-h" class="font-mono font-semibold text-editorial-ink">180 cm</span>
+              </div>
+              <input id="slider-user-h" type="range" min="155" max="200" step="1" value="180" class="swiss-slider w-full" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="rounded-2xl bg-white border border-editorial-line p-3.5">
+              <div class="font-mono text-[9.5px] uppercase tracking-wider text-editorial-muted">Alvo Em Pé</div>
+              <div id="ergo-ideal" class="text-xl font-normal text-editorial-ink tabular-nums mt-0.5">114 cm</div>
+            </div>
+            <div class="rounded-2xl bg-white border border-editorial-line p-3.5">
+              <div class="font-mono text-[9.5px] uppercase tracking-wider text-editorial-muted">Fechado (4,37°)</div>
+              <div id="ergo-closed" class="text-xl font-normal text-editorial-ink tabular-nums mt-0.5">81.2 cm</div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-white border border-editorial-line p-3.5 space-y-2">
+            <div class="font-mono text-[10px] uppercase tracking-wider text-editorial-muted">
+              Clique em um nível para testar no 3D:
+            </div>
+            <div id="ergo-levels" class="space-y-1.5"></div>
+          </div>
+
+          <div id="ergo-note" class="rounded-2xl bg-editorial-surface border border-editorial-line p-3.5 text-xs text-editorial-ink leading-relaxed"></div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // =========================================================================
+    // 1. PARÂMETROS GEOMÉTRICOS EXATOS — SOLUÇÃO 1 (CREMALHEIRA + ESCORA EM U)
+    //    1 unidade = 1 cm | Y=0 = topo da mesa fixa | -Z = fundo | +Z = frente
+    // =========================================================================
+    const THETA_MIN_RAD = Math.asin(3.2 / 42.0); // 0.076264 rad (4.3696°)
+    const THETA_MIN_DEG = THREE.MathUtils.radToDeg(THETA_MIN_RAD);
+    const THETA_MAX_DEG = 59.0;
+
+    const GEO = {
+      deskW: 130.0,
+      deskD: 80.0,
+      deskT: 2.5,
+      deskHeight: 73.0,
+      userHeight: 180.0,
+
+      // Espessuras e folgas reais
+      T: 1.8,        // Compensado naval 18 mm
+      W: 0.2,        // Arruela / folga 2 mm
+
+      // Planos X simétricos (±X) — ZERO SOBREPOSIÇÃO
+      xFrontArm: 38.1,     // [37.2, 39.0]
+      xWasher1:  37.1,     // [37.0, 37.2]
+      xFrame:    36.1,     // [35.2, 37.0] (Base e Quadro Superior)
+      xWasher2:  35.1,     // [35.0, 35.2]
+      xRearArm:  34.1,     // [33.2, 35.0]
+      xRack:     32.1,     // [31.2, 33.0] (Cremalheira Horizontal na Base)
+      xStrut:    30.1,     // [29.2, 31.0] (Escora Articulada em 'U')
+      xWasher3:  29.1,     // [29.0, 29.2] (Arruela pivô superior da escora)
+      xCleat:    28.1,     // [27.2, 29.0] (Calço pivô da escora sob o tampo)
+
+      // Quadro Base (80 × 60 cm footprint)
+      baseL: 60.0,         // Z ∈ [-30.0, +30.0]
+      railH: 3.2,          // Y ∈ [0.0, 3.2]
+      innerSpan: 70.4,     // X ∈ [-35.2, +35.2]
+
+      // Cremalheiras Horizontais na Base (Z ∈ [-28.2, +28.2], Y ∈ [0.0, 3.2])
+      rackZMin: -28.2,
+      rackZMax: 28.2,
+      rackH: 3.2,
+      notchR: 1.05,        // Raio do dente para bastão Ø20mm (R=1.0)
+      dowelYSeated: 2.0,   // Centro do bastão assentado (1.0 cm madeira maciça abaixo)
+      dowelYRiding: 4.2,   // Centro do bastão deslizando sobre o topo de 3.2 cm (folga limpa)
+      dowelR: 1.0,         // Ø20 mm
+      dowelLen: 66.0,      // X ∈ [-33.0, +33.0] — encaixa nas duas cremalheiras e livra braços traseiros
+
+      // Braços Paralelos (4x)
+      L: 42.0,             // Entre centros dos pivôs
+      armW: 3.2,           // Raio das pontas = 1.6 cm (comprimento físico = 45.2 cm)
+      yb: 1.6,
+      zbr: -26.0,          // Pivô inferior traseiro
+      zbf: -10.0,          // Pivô inferior dianteiro (espaçamento = 16.0 cm)
+
+      // Quadro Superior & Tampo (80 × 52 cm)
+      upperL: 52.0,        // Local Z ∈ [-26.0, +26.0]
+      ztrLocal: 7.0,
+      ztfLocal: 23.0,
+      topW: 80.0,
+      topD: 52.0,
+
+      // Escora Articulada em 'U'
+      L_esc: 36.5,         // Entre centros (comprimento físico = 39.5 cm)
+      strutW: 3.0,         // Raio das pontas = 1.5 cm -> borda inferior >= 0.5 cm acima da mesa
+      zEscoraLocal: -19.0, // World Z_piv(theta) = -52.0 + 42.0 * cos(theta)
+
+      // 4 Posições Nominais
+      levels: [
+        { id: 'closed', label: 'Fechado',   short: 'Fechado', deg: THETA_MIN_DEG, zNotch: 26.27 },
+        { id: 'n1',     label: 'N1 • Médio', short: 'N1 35°',  deg: 35.0,          zNotch: 10.17 },
+        { id: 'n2',     label: 'N2 • Alto',  short: 'N2 47°',  deg: 47.0,          zNotch: -3.04 },
+        { id: 'n3',     label: 'N3 • Em Pé', short: 'Em Pé',   deg: 59.0,          zNotch: -22.31 }
+      ]
+    };
+
+    // Cinemática exata do Quadro Superior e Pivô da Escora
+    function getKinematics(deg) {
+      const rad = THREE.MathUtils.degToRad(deg);
+      const yt = GEO.yb + GEO.L * Math.sin(rad);
+      const ztr = GEO.zbr + GEO.L * Math.cos(rad);
+      const zUpperCenter = ztr - GEO.ztrLocal;          // -33.0 + 42*cos(theta)
+      const zPiv = zUpperCenter + GEO.zEscoraLocal;     // -52.0 + 42*cos(theta)
+      const yTopSurface = 5.0 + GEO.L * Math.sin(rad);  // Topo real do tampo sobre a mesa
+      return { rad, yt, zUpperCenter, zPiv, yTopSurface };
+    }
+
+    // =========================================================================
+    // 2. ESTADO REATIVO E CONTEÚDO DAS 4 ABAS (SOLUÇÃO 1)
+    // =========================================================================
+    const state = {
+      thetaDeg: 59.0,
+      targetThetaDeg: 59.0,
+      explode: 0.0,
+      translucentTop: true,
+      showDesk: true,
+      currentStep: 6,
+      highlightedKey: null,
+      stepDropOffset: 0.0,
+      unlockAnim: { active: false, t: 0, startTheta: 59.0, forcedDowelY: null },
+      camAnim: {
+        active: false,
+        t: 0,
+        startPos: new THREE.Vector3(),
+        endPos: new THREE.Vector3(),
+        startTarget: new THREE.Vector3(),
+        endTarget: new THREE.Vector3()
+      }
+    };
+
+    const STEPS = [
+      {
+        num: 1,
+        key: 'base',
+        title: 'Base + Cremalheiras Horizontais',
+        shortTitle: 'Base + Cremalheiras',
+        desc: 'Monte os trilhos da base com as travessas dianteira e traseira. Em seguida, parafuse as duas cremalheiras horizontais alinhadas pelo fundo, mantendo os 3 dentes nivelados para receber o bastão.',
+        specs: [
+          { label: 'Trilhos', value: '60×3,2 cm' },
+          { label: 'Base', value: 'X=±36,1 cm' },
+          { label: 'Cremalheiras', value: 'X=±32,1 cm' },
+          { label: 'Dentes', value: 'Y=2,0 cm' }
+        ],
+        safety: 'Como cada dente mantém 1,0 cm de compensado maciço abaixo do bastão, a trava nunca encosta nem arranha sua mesa fixa.',
+        chips: [{ key: 'base', label: 'Base 60cm' }, { key: 'racks', label: 'Cremalheiras 3 Dentes' }],
+        activeLayers: ['base', 'racks'],
+        cam: { pos: [82, 34, 62], target: [0, 4, 0] }
+      },
+      {
+        num: 2,
+        key: 'arms',
+        title: '4 Braços Paralelos com Arruelas M8',
+        shortTitle: 'Braços Paralelos',
+        desc: 'Fixe os braços traseiros na face interna da base e os dianteiros na face externa. Insira sempre uma arruela lisa de 2 mm entre cada peça de madeira para garantir deslizamento limpo.',
+        specs: [
+          { label: 'Traseiros', value: 'X=±34,1 · Z=-26' },
+          { label: 'Dianteiros', value: 'X=±38,1 · Z=-10' },
+          { label: 'Folga', value: 'Arruela 2 mm' }
+        ],
+        safety: 'Planos X independentes garantem que os 4 braços dobrem completamente planos sem nunca colidir entre si.',
+        chips: [{ key: 'rearArms', label: 'Braços Traseiros' }, { key: 'frontArms', label: 'Braços Dianteiros' }],
+        activeLayers: ['frontArms', 'rearArms'],
+        cam: { pos: [96, 36, 42], target: [20, 16, -6] }
+      },
+      {
+        num: 3,
+        key: 'upperFrame',
+        title: 'Quadro Superior Alinhado',
+        shortTitle: 'Quadro Superior',
+        desc: 'Conecte os trilhos superiores aos 4 pivôs dos braços com parafusos M8, arruelas de 2 mm e porcas parlock. As travessas rasas de 1,8 cm unem o quadro rente ao tampo sem interferir nos braços.',
+        specs: [
+          { label: 'Trilhos Sup.', value: '52×3,2 cm' },
+          { label: 'Plano', value: 'X=±36,1 cm' },
+          { label: 'Fixação', value: 'M8 + Parlock' }
+        ],
+        safety: 'Aperte as porcas parlock até eliminar folga lateral mantendo o giro suave — elas não afrouxam com o uso.',
+        chips: [{ key: 'upperFrame', label: 'Quadro Superior 52cm' }],
+        activeLayers: ['base', 'upperFrame'],
+        cam: { pos: [92, 58, 72], target: [0, 28, -4] }
+      },
+      {
+        num: 4,
+        key: 'strut',
+        title: 'Escora Articulada em "U" + Bastão Ø20',
+        shortTitle: 'Escora em "U"',
+        desc: 'Parafuse os calços de pivô sob o tampo e monte os dois braços da escora unidos na ponta inferior pelo bastão maciço de 66 cm, que apoia diretamente nos dentes da cremalheira.',
+        specs: [
+          { label: 'Escora', value: 'L=36,5 cm' },
+          { label: 'Plano', value: 'X=±30,1 cm' },
+          { label: 'Bastão', value: 'Ø20×66 cm' }
+        ],
+        safety: 'O apoio acontece na própria ponta da escora em compressão pura — zero sobra abaixo da trava nos níveis 35°, 47° e 59°.',
+        chips: [{ key: 'strut', label: 'Escora em U (36,5cm)' }, { key: 'racks', label: 'Encaixe Cremalheira' }],
+        activeLayers: ['strut', 'racks'],
+        cam: { pos: [54, 18, 44], target: [16, 8, -4] }
+      },
+      {
+        num: 5,
+        key: 'top',
+        title: 'Tampo Superior (80 × 52 cm)',
+        shortTitle: 'Tampo Superior',
+        desc: 'Parafuse o tampo de compensado naval 18 mm sobre o quadro superior e sobre os dois calços da escora, criando uma plataforma rígida para monitor, teclado e mouse.',
+        specs: [
+          { label: 'Dimensões', value: '80×52 cm' },
+          { label: 'Chapa', value: 'Naval 18 mm' },
+          { label: 'Altura Em Pé', value: '114,0 cm' }
+        ],
+        safety: 'Deixe os parafusos escareados por baixo do quadro para manter a superfície do tampo 100% lisa.',
+        chips: [{ key: 'top', label: 'Tampo 80×52cm' }],
+        activeLayers: ['base', 'upperFrame'],
+        cam: { pos: [108, 66, 98], target: [0, 22, -4] }
+      },
+      {
+        num: 6,
+        key: 'all',
+        title: 'Teste de Travamento e Destravamento',
+        shortTitle: 'Teste Final',
+        desc: 'Ao subir o tampo, o bastão desliza pelas rampas da cremalheira e cai nos dentes de 35°, 47° e 59°. Para descer, erga +2 cm, levante a escora pela alça e baixe suavemente até fechar.',
+        specs: [
+          { label: 'Níveis', value: '35° · 47° · 59°' },
+          { label: 'Fechado', value: '4,37° (+8,2 cm)' },
+          { label: 'Folga Mesa', value: '1,0 cm' }
+        ],
+        safety: 'Use o botão "▶ Simular Destravamento" e a câmera "Trava" para conferir a folga de 1,0 cm acima da mesa em todos os níveis.',
+        chips: [{ key: 'strut', label: 'Escora em U' }, { key: 'racks', label: 'Cremalheiras' }],
+        activeLayers: ['frontArms', 'base', 'rearArms', 'racks', 'strut'],
+        cam: { pos: [108, 66, 98], target: [0, 22, -4] }
+      }
+    ];
+
+    const X_LAYERS = [
+      { key: 'frontArms', label: 'Braços Dianteiros',       coord: 'X = ±38,1 cm', color: '#E2C8A0', barW: 100 },
+      { key: 'base',      label: 'Trilhos Base / Superior', coord: 'X = ±36,1 cm', color: '#C9A87C', barW: 82, altKeys: ['upperFrame'] },
+      { key: 'rearArms',  label: 'Braços Traseiros',        coord: 'X = ±34,1 cm', color: '#D7BA8F', barW: 64 },
+      { key: 'racks',     label: 'Cremalheiras na Base',    coord: 'X = ±32,1 cm', color: '#D98B48', barW: 46 },
+      { key: 'strut',     label: 'Escora em "U" + Bastão',  coord: 'X = ±30,1 cm', color: '#E69B52', barW: 28 }
+    ];
+
+    const CUTS = [
+      { key: 'top',        name: 'Tampo Superior',                  qty: 1, dims: '80,0 × 52,0 × 1,8' },
+      { key: 'base',       name: 'Trilhos Laterais Base',           qty: 2, dims: '60,0 × 3,2 × 1,8' },
+      { key: 'base',       name: 'Travessa Traseira Base',          qty: 1, dims: '70,4 × 3,2 × 1,8' },
+      { key: 'base',       name: 'Travessa Frontal Rasa Base',      qty: 1, dims: '70,4 × 1,6 × 1,8' },
+      { key: 'racks',      name: 'Cremalheiras Horizontais (3 D.)', qty: 2, dims: '56,4 × 3,2 × 1,8' },
+      { key: 'frontArms',  name: 'Braços Paralelos Dianteiros',     qty: 2, dims: '45,2 × 3,2 × 1,8' },
+      { key: 'rearArms',   name: 'Braços Paralelos Traseiros',      qty: 2, dims: '45,2 × 3,2 × 1,8' },
+      { key: 'upperFrame', name: 'Trilhos Quadro Superior',         qty: 2, dims: '52,0 × 3,2 × 1,8' },
+      { key: 'upperFrame', name: 'Travessas Quadro Superior',       qty: 2, dims: '70,4 × 1,8 × 1,8' },
+      { key: 'strut',      name: 'Calços Pivô da Escora',           qty: 2, dims: '6,0 × 3,2 × 1,8' },
+      { key: 'strut',      name: 'Braços da Escora em "U"',         qty: 2, dims: '39,5 × 3,0 × 1,8' },
+      { key: 'strut',      name: 'Bastão de Apoio (Maciço)',        qty: 1, dims: '66,0 × Ø2,0' }
+    ];
+
+    const HARDWARE = [
+      { name: 'Compensado Naval 18 mm (retalhos c/ cortes)',     qty: '1,0 m²', price: 98.00, checked: true },
+      { name: 'Parafusos Sextavados M8 × 50 mm (Inox/Zincado)',  qty: '10 un',  price: 16.00, checked: true },
+      { name: 'Arruelas Lisas M8 (espessura 2 mm p/ folgas)',    qty: '30 un',  price: 9.00,  checked: true },
+      { name: 'Porcas Autotravantes Parlock M8 (anel nylon)',    qty: '10 un',  price: 10.00, checked: true },
+      { name: 'Bastão Madeira Maciça Ø20 mm (cabo de 70 cm)',    qty: '1 un',   price: 12.00, checked: true },
+      { name: 'Cola PVA D3 (resistente à maresia)',              qty: '250 g',  price: 14.00, checked: true },
+      { name: 'Parafusos Madeira 4×35 mm + Pés Antiderrapantes', qty: '1 kit',  price: 9.00,  checked: true }
+    ];
+
+    // =========================================================================
+    // 3. CENA THREE.JS, MATERIAIS CLAROS E CONSTRUTORES DE GEOMETRIA EXATA
+    // =========================================================================
+    const viewportEl = document.getElementById('viewport');
+    let scene, camera, renderer, controls;
+
+    const groups = {
+      desk:       new THREE.Group(),
+      base:       new THREE.Group(),
+      racks:      new THREE.Group(),
+      rearArms:   new THREE.Group(),
+      frontArms:  new THREE.Group(),
+      upperFrame: new THREE.Group(),
+      strut:      new THREE.Group(),
+      top:        new THREE.Group()
+    };
+
+    const parts = {
+      racks: [],
+      rearArms: [],
+      frontArms: [],
+      upperFrameUnit: null,
+      strutCleats: [],
+      strutArms: [],
+      strutDowel: null,
+      strutPullTab: null,
+      topSlab: null,
+      bolts: {
+        baseFront: [],
+        baseRear: [],
+        upperFront: [],
+        upperRear: [],
+        strutPivot: []
+      }
+    };
+
+    const matMap = {
+      base: [], racks: [], rearArms: [], frontArms: [], upperFrame: [], strut: [], top: []
+    };
+
+    function createWoodTexture(baseColor, grainColor) {
+      const c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0, 0, 256, 256);
+
+      for (let i = 0; i < 44; i++) {
+        const y = Math.random() * 256;
+        const h = 1 + Math.random() * 2.2;
+        ctx.fillStyle = grainColor;
+        ctx.globalAlpha = 0.05 + Math.random() * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(85, y + (Math.random() - 0.5) * 4, 175, y + (Math.random() - 0.5) * 4, 256, y);
+        ctx.lineTo(256, y + h);
+        ctx.lineTo(0, y + h);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    function createWoodMat(baseHex, grainHex, key, opts = {}) {
+      const mat = new THREE.MeshStandardMaterial({
+        map: createWoodTexture(baseHex, grainHex),
+        roughness: opts.roughness ?? 0.62,
+        metalness: 0.02,
+        transparent: opts.transparent ?? false,
+        opacity: opts.opacity ?? 1.0
+      });
+      if (key && matMap[key]) matMap[key].push(mat);
+      return mat;
+    }
+
+    const matEdge   = new THREE.LineBasicMaterial({ color: 0x3b2d1f, transparent: true, opacity: 0.28 });
+    const matSteel  = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.32, metalness: 0.82 });
+    const matWasher = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.28, metalness: 0.85 });
+    const matNylon  = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.35, metalness: 0.1 });
+
+    function addEdges(mesh, threshold = 24) {
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, threshold), matEdge));
+      return mesh;
+    }
+
+    /**
+     * Conjunto Parafuso M8 + Arruela Espaçadora de 2 mm no plano X=0 + Porca Parlock.
+     */
+    function createM8Bolt(headDir = 1) {
+      const g = new THREE.Group();
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 4.5, 14), matSteel);
+      shaft.rotation.z = Math.PI / 2;
+      g.add(shaft);
+
+      const spacer = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, GEO.W, 18), matWasher);
+      spacer.rotation.z = Math.PI / 2;
+      g.add(spacer);
+
+      const wHead = new THREE.Mesh(new THREE.CylinderGeometry(0.84, 0.84, 0.14, 16), matWasher);
+      wHead.rotation.z = Math.PI / 2;
+      wHead.position.x = headDir * 1.97;
+      g.add(wHead);
+
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.48, 6), matSteel);
+      head.rotation.z = Math.PI / 2;
+      head.position.x = headDir * 2.28;
+      g.add(head);
+
+      const wNut = new THREE.Mesh(new THREE.CylinderGeometry(0.84, 0.84, 0.14, 16), matWasher);
+      wNut.rotation.z = Math.PI / 2;
+      wNut.position.x = -headDir * 1.97;
+      g.add(wNut);
+
+      const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.44, 6), matSteel);
+      nut.rotation.z = Math.PI / 2;
+      nut.position.x = -headDir * 2.26;
+      g.add(nut);
+
+      const nylon = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.2, 14), matNylon);
+      nylon.rotation.z = Math.PI / 2;
+      nylon.position.x = -headDir * 2.55;
+      g.add(nylon);
+
+      return g;
+    }
+
+    /**
+     * Braço com pontas arredondadas (comprimento entre centros = L, largura = W).
+     * Estende-se de 0 até +L ao longo de +Z.
+     */
+    function createRoundedLinkMesh(L, W, material) {
+      const r = W / 2;
+      const shape = new THREE.Shape();
+      shape.absarc(0, 0, r, Math.PI / 2, (3 * Math.PI) / 2, false);
+      shape.absarc(L, 0, r, -Math.PI / 2, Math.PI / 2, false);
+      shape.closePath();
+
+      [0, L].forEach(u => {
+        const hole = new THREE.Path();
+        hole.absarc(u, 0, 0.4, 0, Math.PI * 2, true);
+        shape.holes.push(hole);
+      });
+
+      const geom = new THREE.ExtrudeGeometry(shape, {
+        depth: GEO.T,
+        bevelEnabled: false,
+        curveSegments: 20
+      });
+      geom.translate(0, 0, -GEO.T / 2);
+      geom.rotateY(-Math.PI / 2); // u (+X) -> +Z, espessura -> X
+
+      const mesh = new THREE.Mesh(geom, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return addEdges(mesh, 26);
+    }
+
+    /**
+     * CREMALHEIRA HORIZONTAL NA BASE (Z ∈ [-28.2, +28.2], Y ∈ [0.0, 3.2], espessura 1.8 cm)
+     * 3 dentes reais (N3: -22.31, N2: -3.04, N1: +10.17) + berço de repouso Fechado (+26.27).
+     * Todos os dentes têm centro em Y = 2.0 cm e raio 1.05 cm (1.0 cm maciço abaixo do bastão).
+     * Rampas inclinadas no lado -Z facilitam a subida; paredes verticais em +Z travam contra o peso.
+     */
+    function createCremalheiraMesh(material) {
+      const R = GEO.notchR;          // 1.05 cm
+      const yc = GEO.dowelYSeated;   // 2.0 cm
+      const H = GEO.rackH;           // 3.2 cm
+
+      const shape = new THREE.Shape();
+      // Base horizontal rente à mesa fixa (Y = 0)
+      shape.moveTo(GEO.rackZMin, 0);
+      shape.lineTo(GEO.rackZMax, 0);
+
+      // Borda frontal (+28.2) e berço de repouso para Fechado (Z = +26.27)
+      shape.lineTo(GEO.rackZMax, 2.5);
+      shape.lineTo(26.27 + R, 2.5);
+      shape.lineTo(26.27 + R, yc);
+      shape.absarc(26.27, yc, R, 0, Math.PI, true); // Arco para baixo até Y = 0.95
+      shape.lineTo(23.2, H);
+
+      // Dentes N1 (+10.17), N2 (-3.04), N3 (-22.31) em ordem decrescente de Z
+      const notches = [
+        { z: 10.17, rampLeft: 6.4 },
+        { z: -3.04, rampLeft: -6.8 },
+        { z: -22.31, rampLeft: -25.6 }
+      ];
+
+      for (const n of notches) {
+        shape.lineTo(n.z + R, H);           // Topo plano até a parede vertical de travamento (+Z)
+        shape.lineTo(n.z + R, yc);          // Parede vertical de bloqueio
+        shape.absarc(n.z, yc, R, 0, Math.PI, true); // Berço semicircular (Y_min = 0.95 cm)
+        shape.lineTo(n.rampLeft, H);        // Rampa suave de subida (-Z)
+      }
+
+      shape.lineTo(GEO.rackZMin, H);
+      shape.closePath();
+
+      const geom = new THREE.ExtrudeGeometry(shape, {
+        depth: GEO.T,
+        bevelEnabled: false,
+        curveSegments: 20
+      });
+      geom.translate(0, 0, -GEO.T / 2);
+      geom.rotateY(-Math.PI / 2); // shape X -> +Z, shape Y -> +Y
+
+      const mesh = new THREE.Mesh(geom, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return addEdges(mesh, 22);
+    }
+
+    function initScene() {
+      scene = new THREE.Scene();
+
+      const w = viewportEl.clientWidth || 800;
+      const h = viewportEl.clientHeight || 520;
+      camera = new THREE.PerspectiveCamera(36, w / h, 0.5, 1000);
+      camera.position.set(108, 66, 98);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setClearColor(0x000000, 0);
+      viewportEl.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.07;
+      controls.target.set(0, 22, -4);
+      controls.minDistance = 20;
+      controls.maxDistance = 320;
+
+      // Iluminação quente de estúdio editorial
+      scene.add(new THREE.HemisphereLight(0xfffaf2, 0xd8c8ba, 1.05));
+
+      const keyLight = new THREE.DirectionalLight(0xfff6e5, 0.98);
+      keyLight.position.set(85, 135, 90);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.set(2048, 2048);
+      keyLight.shadow.bias = -0.0004;
+      const sc = 90;
+      keyLight.shadow.camera.left = -sc;
+      keyLight.shadow.camera.right = sc;
+      keyLight.shadow.camera.top = sc;
+      keyLight.shadow.camera.bottom = -sc;
+      keyLight.shadow.camera.near = 20;
+      keyLight.shadow.camera.far = 360;
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0xd9e8ff, 0.42);
+      fillLight.position.set(-90, 50, -70);
+      scene.add(fillLight);
+
+      Object.values(groups).forEach(g => scene.add(g));
+
+      buildFixedDesk();
+      buildConverter();
+      updateKinematics();
+      applyStepVisibility(false);
+
+      const onResize = () => {
+        const nw = viewportEl.clientWidth;
+        const nh = viewportEl.clientHeight;
+        if (!nw || !nh) return;
+        camera.aspect = nw / nh;
+        camera.updateProjectionMatrix();
+        renderer.setSize(nw, nh);
+      };
+      window.addEventListener('resize', onResize);
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(onResize).observe(viewportEl);
+      }
+
+      animate();
+    }
+
+    function buildFixedDesk() {
+      const matDesk = new THREE.MeshStandardMaterial({
+        color: 0xe6e4de,
+        roughness: 0.88,
+        metalness: 0.02,
+        transparent: true,
+        opacity: 0.62
+      });
+      const matWire = new THREE.LineBasicMaterial({ color: 0x1a1a18, transparent: true, opacity: 0.16 });
+
+      const geo = new THREE.BoxGeometry(GEO.deskW, GEO.deskT, GEO.deskD);
+      const mesh = new THREE.Mesh(geo, matDesk);
+      mesh.position.set(0, -GEO.deskT / 2, 0);
+      mesh.receiveShadow = true;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), matWire));
+      groups.desk.add(mesh);
+    }
+
+    function buildConverter() {
+      const matBase  = createWoodMat('#C9A87C', '#967145', 'base');
+      const matRack  = createWoodMat('#D98B48', '#99551C', 'racks');
+      const matRear  = createWoodMat('#D7BA8F', '#A37E52', 'rearArms');
+      const matFront = createWoodMat('#E2C8A0', '#AD895C', 'frontArms');
+      const matUpper = createWoodMat('#CEAE82', '#9A764A', 'upperFrame');
+      const matStrut = createWoodMat('#E69B52', '#A86220', 'strut');
+      const matDowel = createWoodMat('#A66A33', '#6B3E17', 'strut');
+      const matTop   = createWoodMat('#EFE0C6', '#C2A374', 'top', {
+        transparent: state.translucentTop,
+        opacity: state.translucentTop ? 0.36 : 1.0
+      });
+
+      // 1. QUADRO BASE (X = ±36.1, Y ∈ [0, 3.2], Z ∈ [-30, +30])
+      const baseRailGeo = new THREE.BoxGeometry(GEO.T, GEO.railH, GEO.baseL);
+      [-1, 1].forEach(side => {
+        const rail = addEdges(new THREE.Mesh(baseRailGeo, matBase));
+        rail.position.set(side * GEO.xFrame, GEO.railH / 2, 0);
+        rail.castShadow = true;
+        rail.receiveShadow = true;
+        groups.base.add(rail);
+      });
+
+      // Travessa Traseira Base (Z = -29.1, Y ∈ [0, 3.2])
+      const rearCross = addEdges(new THREE.Mesh(
+        new THREE.BoxGeometry(GEO.innerSpan, GEO.railH, GEO.T),
+        matBase
+      ));
+      rearCross.position.set(0, GEO.railH / 2, -29.1);
+      rearCross.castShadow = true;
+      rearCross.receiveShadow = true;
+      groups.base.add(rearCross);
+
+      // Travessa Frontal Rasa Base (Z = +29.1, Y ∈ [0, 1.6])
+      const frontCross = addEdges(new THREE.Mesh(
+        new THREE.BoxGeometry(GEO.innerSpan, 1.6, GEO.T),
+        matBase
+      ));
+      frontCross.position.set(0, 0.8, 29.1);
+      frontCross.castShadow = true;
+      frontCross.receiveShadow = true;
+      groups.base.add(frontCross);
+
+      // 2. CREMALHEIRAS HORIZONTAIS NA BASE (X = ±32.1, Y ∈ [0, 3.2], Z ∈ [-28.2, +28.2])
+      [-1, 1].forEach(side => {
+        const rack = createCremalheiraMesh(matRack);
+        rack.position.set(side * GEO.xRack, 0, 0);
+        rack.userData = { side, baseX: side * GEO.xRack };
+        groups.racks.add(rack);
+        parts.racks.push(rack);
+      });
+
+      // 3. BRAÇOS TRASEIROS (X = ±34.1, pivô inferior em Z = -26.0, Y = 1.6)
+      [-1, 1].forEach(side => {
+        const arm = createRoundedLinkMesh(GEO.L, GEO.armW, matRear);
+        arm.userData = { side, baseX: side * GEO.xRearArm };
+        groups.rearArms.add(arm);
+        parts.rearArms.push(arm);
+
+        const bolt = createM8Bolt(side);
+        bolt.position.set(side * GEO.xWasher2, GEO.yb, GEO.zbr);
+        bolt.userData = { side, baseX: side * GEO.xWasher2 };
+        groups.rearArms.add(bolt);
+        parts.bolts.baseRear.push(bolt);
+      });
+
+      // 4. BRAÇOS DIANTEIROS (X = ±38.1, pivô inferior em Z = -10.0, Y = 1.6)
+      [-1, 1].forEach(side => {
+        const arm = createRoundedLinkMesh(GEO.L, GEO.armW, matFront);
+        arm.userData = { side, baseX: side * GEO.xFrontArm };
+        groups.frontArms.add(arm);
+        parts.frontArms.push(arm);
+
+        const bolt = createM8Bolt(side);
+        bolt.position.set(side * GEO.xWasher1, GEO.yb, GEO.zbf);
+        bolt.userData = { side, baseX: side * GEO.xWasher1 };
+        groups.frontArms.add(bolt);
+        parts.bolts.baseFront.push(bolt);
+      });
+
+      // 5. QUADRO SUPERIOR (X = ±36.1, Z_local ∈ [-26.0, +26.0], Y_local ∈ [-1.6, +1.6])
+      parts.upperFrameUnit = new THREE.Group();
+      const upperRailGeo = new THREE.BoxGeometry(GEO.T, GEO.railH, GEO.upperL);
+
+      [-1, 1].forEach(side => {
+        const uRail = addEdges(new THREE.Mesh(upperRailGeo, matUpper));
+        uRail.position.set(side * GEO.xFrame, 0, 0);
+        uRail.castShadow = true;
+        uRail.receiveShadow = true;
+        parts.upperFrameUnit.add(uRail);
+
+        const bFront = createM8Bolt(side);
+        bFront.position.set(side * GEO.xWasher1, 0, GEO.ztfLocal);
+        bFront.userData = { side, baseX: side * GEO.xWasher1 };
+        parts.upperFrameUnit.add(bFront);
+        parts.bolts.upperFront.push(bFront);
+
+        const bRear = createM8Bolt(side);
+        bRear.position.set(side * GEO.xWasher2, 0, GEO.ztrLocal);
+        bRear.userData = { side, baseX: side * GEO.xWasher2 };
+        parts.upperFrameUnit.add(bRear);
+        parts.bolts.upperRear.push(bRear);
+      });
+
+      // Travessas rasas do Quadro Superior (altura 1.8 cm rente ao tampo: Y_local ∈ [-0.2, +1.6])
+      // Garantem sincronismo lateral total com folga limpa acima dos braços ao dobrar
+      const uCrossGeo = new THREE.BoxGeometry(GEO.innerSpan, GEO.T, GEO.T);
+      [-25.1, 25.1].forEach(zPos => {
+        const cross = addEdges(new THREE.Mesh(uCrossGeo, matUpper));
+        cross.position.set(0, 0.7, zPos);
+        cross.castShadow = true;
+        cross.receiveShadow = true;
+        parts.upperFrameUnit.add(cross);
+      });
+
+      groups.upperFrame.add(parts.upperFrameUnit);
+
+      // 6. ESCORA ARTICULADA EM 'U' (X = ±30.1, L = 36.5 cm) + CALÇOS (X = ±28.1) + BASTÃO Ø20mm
+      const cleatGeo = new THREE.BoxGeometry(GEO.T, GEO.railH, 6.0);
+      [-1, 1].forEach(side => {
+        const cleat = addEdges(new THREE.Mesh(cleatGeo, matUpper));
+        cleat.userData = { side, baseX: side * GEO.xCleat };
+        cleat.castShadow = true;
+        cleat.receiveShadow = true;
+        groups.strut.add(cleat);
+        parts.strutCleats.push(cleat);
+
+        const sArm = createRoundedLinkMesh(GEO.L_esc, GEO.strutW, matStrut);
+        sArm.userData = { side, baseX: side * GEO.xStrut };
+        groups.strut.add(sArm);
+        parts.strutArms.push(sArm);
+
+        const sBolt = createM8Bolt(side);
+        sBolt.userData = { side, baseX: side * GEO.xWasher3 };
+        groups.strut.add(sBolt);
+        parts.bolts.strutPivot.push(sBolt);
+      });
+
+      // Bastão de Apoio Ø20 mm (comprimento 66.0 cm: X ∈ [-33.0, +33.0])
+      const dowelGeo = new THREE.CylinderGeometry(GEO.dowelR, GEO.dowelR, GEO.dowelLen, 24);
+      dowelGeo.rotateZ(Math.PI / 2);
+      parts.strutDowel = new THREE.Mesh(dowelGeo, matDowel);
+      parts.strutDowel.castShadow = true;
+      parts.strutDowel.receiveShadow = true;
+      groups.strut.add(parts.strutDowel);
+
+      // Pequena alça central de madeira no bastão para puxar/destravar com a mão
+      parts.strutPullTab = addEdges(new THREE.Mesh(
+        new THREE.BoxGeometry(8.0, 1.2, 2.8),
+        matStrut
+      ));
+      parts.strutPullTab.castShadow = true;
+      groups.strut.add(parts.strutPullTab);
+
+      // 7. TAMPO SUPERIOR (80 × 52 × 1.8 cm)
+      parts.topSlab = addEdges(new THREE.Mesh(
+        new THREE.BoxGeometry(GEO.topW, GEO.T, GEO.topD),
+        matTop
+      ));
+      parts.topSlab.castShadow = true;
+      parts.topSlab.receiveShadow = true;
+      groups.top.add(parts.topSlab);
+    }
+
+    // =========================================================================
+    // 4. SOLVER CINEMÁTICO EXATO (ZERO PENETRAÇÃO EM QUALQUER ÂNGULO)
+    // =========================================================================
+    function computeDowelY(deg) {
+      if (state.unlockAnim.active && state.unlockAnim.forcedDowelY !== null) {
+        return state.unlockAnim.forcedDowelY;
+      }
+      // Distância angular até o dente mais próximo (Fechado, N1, N2 ou N3)
+      let minDist = Infinity;
+      for (const lv of GEO.levels) {
+        const d = Math.abs(deg - lv.deg);
+        if (d < minDist) minDist = d;
+      }
+      // Assentado no dente (Y = 2.0) dentro de ±0.7°, sobe suave até Y = 4.2 (topo da cremalheira)
+      if (minDist <= 0.7) return GEO.dowelYSeated;
+      if (minDist >= 2.2) return GEO.dowelYRiding;
+      const t = (minDist - 0.7) / 1.5;
+      const smooth = t * t * (3 - 2 * t);
+      return GEO.dowelYSeated + smooth * (GEO.dowelYRiding - GEO.dowelYSeated);
+    }
+
+    function updateKinematics() {
+      const deg = state.thetaDeg;
+      const { rad, yt, zUpperCenter, zPiv, yTopSurface } = getKinematics(deg);
+      const ex = state.explode; // 0..1
+
+      // Separação limpa das camadas X ao explodir
+      const dxFront = ex * 7.5;
+      const dxWash1 = ex * 3.8;
+      const dxRear  = -ex * 3.8;
+      const dxWash2 = -ex * 1.9;
+      const dxRack  = -ex * 7.8;
+      const dxStrut = -ex * 11.8;
+      const dxWash3 = -ex * 14.0;
+      const dxCleat = -ex * 16.0;
+
+      // 1) Cremalheiras na Base
+      parts.racks.forEach(r => {
+        r.position.x = r.userData.baseX + r.userData.side * dxRack;
+      });
+
+      // 2) Braços Paralelos Dianteiros (X = ±38.1, pivô em Z = -10.0, Y = 1.6)
+      parts.frontArms.forEach(arm => {
+        arm.position.set(arm.userData.baseX + arm.userData.side * dxFront, GEO.yb, GEO.zbf);
+        arm.rotation.x = -rad; // +Z sobe para (+Y, +Z)
+      });
+      parts.bolts.baseFront.forEach(b => {
+        b.position.x = b.userData.baseX + b.userData.side * dxWash1;
+      });
+
+      // 3) Braços Paralelos Traseiros (X = ±34.1, pivô em Z = -26.0, Y = 1.6)
+      parts.rearArms.forEach(arm => {
+        arm.position.set(arm.userData.baseX + arm.userData.side * dxRear, GEO.yb, GEO.zbr);
+        arm.rotation.x = -rad;
+      });
+      parts.bolts.baseRear.forEach(b => {
+        b.position.x = b.userData.baseX + b.userData.side * dxWash2;
+      });
+
+      // 4) Quadro Superior
+      parts.upperFrameUnit.position.set(0, yt, zUpperCenter);
+      parts.bolts.upperFront.forEach(b => {
+        b.position.x = b.userData.baseX + b.userData.side * dxWash1;
+      });
+      parts.bolts.upperRear.forEach(b => {
+        b.position.x = b.userData.baseX + b.userData.side * dxWash2;
+      });
+
+      // 5) Escora Articulada em 'U' + Bastão Ø20 mm
+      const dowelY = computeDowelY(deg);
+      const dY_esc = yt - dowelY;
+      const dZ_esc = Math.sqrt(Math.max(0.5, GEO.L_esc * GEO.L_esc - dY_esc * dY_esc));
+      const dowelZ = zPiv + dZ_esc;
+      const phi = Math.atan2(dY_esc, dZ_esc); // +phi inclina +Z para baixo (-Y, +Z)
+
+      parts.strutCleats.forEach(c => {
+        c.position.set(c.userData.baseX + c.userData.side * dxCleat, yt, zPiv);
+      });
+      parts.strutArms.forEach(arm => {
+        arm.position.set(arm.userData.baseX + arm.userData.side * dxStrut, yt, zPiv);
+        arm.rotation.x = phi;
+      });
+      parts.bolts.strutPivot.forEach(b => {
+        b.position.set(b.userData.baseX + b.userData.side * dxWash3, yt, zPiv);
+      });
+
+      parts.strutDowel.position.set(0, dowelY, dowelZ);
+      parts.strutPullTab.position.set(0, dowelY + 1.1, dowelZ + 1.4);
+
+      // 6) Tampo Superior (Y centro = yt + 1.6 + 0.9 = yt + 2.5)
+      parts.topSlab.position.set(0, yt + 2.5 + ex * 11.0, zUpperCenter);
+
+      // Atualiza Ficha Editorial
+      updateEditorialHUD(deg, yTopSurface, dowelY, dowelZ);
+    }
+
+    function updateEditorialHUD(deg, yTopSurface, dowelY, dowelZ) {
+      const totalH = GEO.deskHeight + yTopSurface;
+      const pct = Math.max(0, Math.min(100, ((deg - THETA_MIN_DEG) / (THETA_MAX_DEG - THETA_MIN_DEG)) * 100));
+      const clearanceAboveDesk = Math.max(0, dowelY - GEO.dowelR); // 1.0 cm assentado, >3.2 cm levantado
+
+      document.getElementById('hero-height').textContent = totalH.toFixed(1);
+      document.getElementById('metric-lift').textContent = `+${yTopSurface.toFixed(1)} cm`;
+      document.getElementById('metric-angle').textContent = `${deg.toFixed(deg < 6 ? 1 : 0)}°`;
+      document.getElementById('metric-clearance').textContent = `${clearanceAboveDesk.toFixed(1)} cm`;
+
+      // Estado da trava
+      let lockText = 'Deslizando';
+      let lockTickPct = 50;
+      let activePresetId = null;
+
+      if (state.unlockAnim.active && dowelY > 2.5) {
+        lockText = 'Destravada';
+        lockTickPct = 15;
+      } else {
+        const matched = GEO.levels.find(lv => Math.abs(deg - lv.deg) <= 0.8);
+        if (matched) {
+          lockText = matched.label;
+          activePresetId = matched.id;
+          lockTickPct = matched.id === 'closed' ? 88 : matched.id === 'n1' ? 60 : matched.id === 'n2' ? 35 : 12;
+        }
+      }
+      document.getElementById('metric-lock').textContent = lockText;
+
+      // Posição dos 4 mini medidores verticais (top: 8%..88%)
+      const mapTick = ratio => `${8 + (1 - Math.max(0, Math.min(1, ratio))) * 80}%`;
+      document.getElementById('tick-lift').style.top = mapTick(pct / 100);
+      document.getElementById('tick-angle').style.top = mapTick(pct / 100);
+      document.getElementById('tick-lock').style.top = `${lockTickPct}%`;
+      document.getElementById('tick-clearance').style.top = mapTick(Math.min(1, clearanceAboveDesk / 3.5));
+
+      // Barra horizontal gradiente
+      document.getElementById('elevation-fill').style.width = `${Math.max(12, pct)}%`;
+      document.getElementById('bar-percent').textContent = `${Math.round(pct)}`;
+      document.getElementById('bar-hint').textContent = `${lockText.toUpperCase()} • ${deg.toFixed(deg < 6 ? 1 : 0)}°`;
+      document.getElementById('bar-status-label').textContent = `Z Bastão: ${dowelZ >= 0 ? '+' : ''}${dowelZ.toFixed(1)} cm`;
+      document.getElementById('elevation-bar').setAttribute('aria-valuenow', Math.round(pct));
+
+      // Escala sutil dos raios do SVG editorial conforme altura
+      const rayScale = 0.62 + (pct / 100) * 0.38;
+      document.getElementById('sun-rays').setAttribute('transform', `translate(42 36) scale(${rayScale.toFixed(3)}) translate(-42 -36)`);
+
+      // Destaque dos botões de preset na dock inferior
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        const pDeg = parseFloat(btn.dataset.preset);
+        const isActive = Math.abs(deg - pDeg) <= 0.8 && !state.unlockAnim.active;
+        btn.className = isActive
+          ? 'preset-btn px-3 py-1.5 rounded-full text-[11px] font-semibold bg-white text-editorial-ink shadow-sm ring-1 ring-editorial-amber whitespace-nowrap transition'
+          : 'preset-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/80 hover:bg-white/70 whitespace-nowrap transition';
+      });
+    }
+
+    // =========================================================================
+    // 5. LOOP DE ANIMAÇÃO (DESTRAVAMENTO REALISTA + CÂMERA SUAVE)
+    // =========================================================================
+    let prevTime = performance.now();
+    const easeInOut = t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+
+    function animate(now = performance.now()) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - prevTime) / 1000, 0.05);
+      prevTime = now;
+
+      // Sequência de Destravamento Solução 1:
+      // 0.00–0.50s: Tampo sobe +2° para aliviar o peso na escora
+      // 0.50–1.05s: Escora levanta do dente (Y_dowel: 2.0 -> 4.3 cm, passando livre sobre a cremalheira)
+      // 1.05–2.70s: Tampo desce suavemente até Fechado (4.37°) com bastão em Y = 4.3 cm
+      // 2.70–3.15s: Bastão assenta suavemente no berço de repouso (Y = 2.0 cm, Z = +26.27 cm)
+      if (state.unlockAnim.active) {
+        const ua = state.unlockAnim;
+        ua.t += dt;
+
+        if (ua.t < 0.5) {
+          const p = easeInOut(ua.t / 0.5);
+          state.thetaDeg = ua.startTheta + p * 2.0;
+          ua.forcedDowelY = GEO.dowelYSeated + p * 0.4;
+        } else if (ua.t < 1.05) {
+          const p = easeInOut((ua.t - 0.5) / 0.55);
+          state.thetaDeg = ua.startTheta + 2.0;
+          ua.forcedDowelY = (GEO.dowelYSeated + 0.4) + p * (4.3 - (GEO.dowelYSeated + 0.4));
+        } else if (ua.t < 2.7) {
+          const p = easeInOut((ua.t - 1.05) / 1.65);
+          state.thetaDeg = (ua.startTheta + 2.0) * (1 - p) + THETA_MIN_DEG * p;
+          ua.forcedDowelY = 4.3;
+        } else if (ua.t < 3.15) {
+          const p = easeInOut((ua.t - 2.7) / 0.45);
+          state.thetaDeg = THETA_MIN_DEG;
+          ua.forcedDowelY = 4.3 * (1 - p) + GEO.dowelYSeated * p;
+        } else {
+          state.thetaDeg = THETA_MIN_DEG;
+          state.targetThetaDeg = THETA_MIN_DEG;
+          ua.forcedDowelY = null;
+          ua.active = false;
+        }
+        updateKinematics();
+      } else if (Math.abs(state.thetaDeg - state.targetThetaDeg) > 0.03) {
+        state.thetaDeg += (state.targetThetaDeg - state.thetaDeg) * Math.min(1, dt * 8.0);
+        updateKinematics();
+      }
+
+      if (state.stepDropOffset > 0.02) {
+        state.stepDropOffset *= Math.pow(0.05, dt);
+        const st = STEPS[state.currentStep - 1];
+        if (st) {
+          if (st.key === 'arms') {
+            groups.rearArms.position.y = state.stepDropOffset;
+            groups.frontArms.position.y = state.stepDropOffset;
+          } else if (groups[st.key]) {
+            groups[st.key].position.y = state.stepDropOffset;
+          }
+        }
+      } else if (state.stepDropOffset !== 0) {
+        state.stepDropOffset = 0;
+        Object.values(groups).forEach(g => { g.position.y = 0; });
+      }
+
+      if (state.camAnim.active) {
+        state.camAnim.t = Math.min(1, state.camAnim.t + dt * 2.5);
+        const p = easeInOut(state.camAnim.t);
+        camera.position.lerpVectors(state.camAnim.startPos, state.camAnim.endPos, p);
+        controls.target.lerpVectors(state.camAnim.startTarget, state.camAnim.endTarget, p);
+        if (state.camAnim.t >= 1) state.camAnim.active = false;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // =========================================================================
+    // 6. CÂMERAS, BARRA ARRASTÁVEL, ABAS, MONTAGEM, CORTES, CUSTOS E ERGONOMIA
+    // =========================================================================
+    function moveCameraTo(posArr, targetArr) {
+      state.camAnim.active = true;
+      state.camAnim.t = 0;
+      state.camAnim.startPos.copy(camera.position);
+      state.camAnim.endPos.set(...posArr);
+      state.camAnim.startTarget.copy(controls.target);
+      state.camAnim.endTarget.set(...targetArr);
+    }
+
+    function setCameraView(preset) {
+      const views = {
+        iso:   { pos: [108, 66, 98],  target: [0, 22, -4] },
+        side:  { pos: [148, 22, -2],  target: [0, 20, -2] },
+        joint: { pos: [68, 22, 26],   target: [34, 8, -12] },
+        lock:  { pos: [52, 16, 36],   target: [18, 5, -4] }
+      };
+      const v = views[preset];
+      if (!v) return;
+      moveCameraTo(v.pos, v.target);
+
+      document.querySelectorAll('.cam-btn').forEach(btn => {
+        const active = btn.dataset.cam === preset;
+        btn.className = active
+          ? 'cam-btn px-3 py-1.5 rounded-full text-[11px] font-medium bg-editorial-ink text-white transition'
+          : 'cam-btn px-3 py-1.5 rounded-full text-[11px] font-medium text-editorial-ink/75 hover:text-editorial-ink transition';
+      });
+    }
+
+    function animateToTheta(deg) {
+      state.unlockAnim.active = false;
+      state.unlockAnim.forcedDowelY = null;
+      state.targetThetaDeg = Math.max(THETA_MIN_DEG, Math.min(THETA_MAX_DEG, deg));
+    }
+
+    function runUnlockSimulation() {
+      const start = state.thetaDeg < 25 ? 59.0 : Math.min(state.thetaDeg, 59.0);
+      state.thetaDeg = start;
+      state.targetThetaDeg = start;
+      state.unlockAnim = { active: true, t: 0, startTheta: start, forcedDowelY: GEO.dowelYSeated };
+      setCameraView('lock');
+    }
+
+    // Interação de arraste (mouse e toque) na barra horizontal gradiente
+    const elevBar = document.getElementById('elevation-bar');
+    let isDraggingBar = false;
+
+    function updateFromBarClientX(clientX) {
+      const rect = elevBar.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      state.unlockAnim.active = false;
+      state.unlockAnim.forcedDowelY = null;
+      state.thetaDeg = THETA_MIN_DEG + ratio * (THETA_MAX_DEG - THETA_MIN_DEG);
+      state.targetThetaDeg = state.thetaDeg;
+      updateKinematics();
+    }
+
+    elevBar.addEventListener('pointerdown', e => {
+      isDraggingBar = true;
+      elevBar.setPointerCapture(e.pointerId);
+      updateFromBarClientX(e.clientX);
+    });
+    elevBar.addEventListener('pointermove', e => {
+      if (isDraggingBar) updateFromBarClientX(e.clientX);
+    });
+    elevBar.addEventListener('pointerup', () => { isDraggingBar = false; });
+    elevBar.addEventListener('pointercancel', () => { isDraggingBar = false; });
+
+    // Alternância das 4 Abas
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.className = active
+          ? 'tab-btn py-3 font-mono text-[10.5px] tracking-wider uppercase border-b-2 border-editorial-ink text-editorial-ink font-semibold transition'
+          : 'tab-btn py-3 font-mono text-[10.5px] tracking-wider uppercase border-b-2 border-transparent text-editorial-muted hover:text-editorial-ink transition';
+      });
+    }
+
+    // Montagem Passo a Passo
+    function selectStep(num, animateEntry = true) {
+      state.currentStep = Math.max(1, Math.min(6, num));
+      applyStepVisibility(animateEntry);
+      renderStepUI();
+    }
+
+    function applyStepVisibility(animateEntry) {
+      const s = state.currentStep;
+      Object.values(groups).forEach(g => { g.position.y = 0; });
+
+      groups.base.visible       = s >= 1;
+      groups.racks.visible      = s >= 1;
+      groups.rearArms.visible   = s >= 2;
+      groups.frontArms.visible  = s >= 2;
+      groups.upperFrame.visible = s >= 3;
+      groups.strut.visible      = s >= 4;
+      groups.top.visible        = s >= 5;
+
+      const stepObj = STEPS[s - 1];
+      if (animateEntry && stepObj) {
+        state.stepDropOffset = stepObj.key === 'all' ? 0 : 9.0;
+        moveCameraTo(stepObj.cam.pos, stepObj.cam.target);
+        if (stepObj.key !== 'all' && stepObj.key !== 'arms') {
+          highlightPart(stepObj.key, stepObj.title);
+        } else {
+          clearHighlight();
+        }
+      } else {
+        state.stepDropOffset = 0;
+        clearHighlight();
+      }
+    }
+
+    function renderStepUI() {
+      const pillsEl = document.getElementById('step-pills');
+      pillsEl.innerHTML = STEPS.map(st => {
+        const active = st.num === state.currentStep;
+        const done = st.num < state.currentStep;
+        const numStr = String(st.num).padStart(2, '0');
+        return `
+          <button data-step="${st.num}" class="step-pill px-2.5 py-1 rounded-full font-mono text-[10.5px] font-medium transition ${
+            active
+              ? 'bg-[#161614] text-[#F3F3F0] font-semibold'
+              : done
+                ? 'bg-editorial-surface text-editorial-ink hover:bg-[#E0E0D8]'
+                : 'bg-transparent text-editorial-muted hover:text-editorial-ink hover:bg-editorial-surface/60'
+          }">${numStr}</button>
+        `;
+      }).join('');
+
+      pillsEl.querySelectorAll('.step-pill').forEach(btn => {
+        btn.addEventListener('click', () => selectStep(parseInt(btn.dataset.step, 10), true));
+      });
+
+      // Atualiza barra contínua pôr-do-sol
+      const progressPct = (state.currentStep / STEPS.length) * 100;
+      const barEl = document.getElementById('step-progress-bar');
+      if (barEl) barEl.style.width = `${progressPct}%`;
+
+      // Estado visual do botão Ver Completo
+      const showAllBtn = document.getElementById('btn-show-all');
+      if (showAllBtn) {
+        const isAll = state.currentStep === 6;
+        showAllBtn.className = isAll
+          ? 'px-2.5 py-1 rounded-full border border-editorial-ink bg-editorial-ink text-[#F3F3F0] font-mono text-[10px] uppercase tracking-[0.08em] transition shrink-0'
+          : 'px-2.5 py-1 rounded-full border border-editorial-line bg-transparent font-mono text-[10px] uppercase tracking-[0.08em] text-editorial-muted hover:border-editorial-ink hover:text-editorial-ink transition shrink-0';
+      }
+
+      const st = STEPS[state.currentStep - 1];
+      const stepNumStr = String(st.num).padStart(2, '0');
+      const card = document.getElementById('step-detail-card');
+
+      card.innerHTML = `
+        <!-- Header Editorial do Passo -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-editorial-coral"></span>
+              <span class="font-mono text-[10.5px] uppercase tracking-[0.12em] text-editorial-ink font-semibold">
+                Passo ${stepNumStr} / 06
+              </span>
+            </div>
+            <span class="font-mono text-[9.5px] uppercase tracking-[0.09em] text-editorial-muted">
+              Solução 1 · Cremalheira
+            </span>
+          </div>
+          <h2 class="font-display text-[17px] leading-snug font-semibold tracking-tight text-[#161614]">
+            ${st.title}
+          </h2>
+        </div>
+
+        <!-- Descrição Legível -->
+        <p class="text-[14px] leading-[1.6] text-[#2C2C2A] max-w-[60ch]">
+          ${st.desc}
+        </p>
+
+        <!-- Faixa Compacta de Especificações Técnicas -->
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5 border-y border-editorial-line font-mono text-[10.5px]">
+          ${st.specs.map((sp, i) => `
+            <span class="inline-flex items-baseline gap-1">
+              <span class="text-editorial-muted uppercase text-[9.5px] tracking-wider">${sp.label}:</span>
+              <span class="text-[#161614] font-medium">${sp.value}</span>
+            </span>
+            ${i < st.specs.length - 1 ? '<span class="text-[#C6C6BC]" aria-hidden="true">·</span>' : ''}
+          `).join('')}
+        </div>
+
+        <!-- Callout Editorial de Segurança (Barra Lateral Coral → Âmbar) -->
+        <div class="safety-callout space-y-1">
+          <div class="flex items-center gap-1.5">
+            <svg viewBox="0 0 14 14" class="w-3 h-3 text-editorial-coral shrink-0" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M7 1.3L12 3.3V6.8C12 9.8 9.8 11.9 7 12.8C4.2 11.9 2 9.8 2 6.8V3.3L7 1.3Z" stroke-linejoin="round" />
+            </svg>
+            <span class="font-mono text-[9.5px] uppercase tracking-[0.12em] text-editorial-coral font-semibold">
+              Ponto Crítico de Segurança
+            </span>
+          </div>
+          <p class="text-[12.5px] leading-[1.55] text-[#2C2C2A]">
+            ${st.safety}
+          </p>
+        </div>
+
+        <!-- Chips Interativos de Destaque no 3D -->
+        <div class="space-y-1.5">
+          <div class="font-mono text-[9.5px] uppercase tracking-[0.11em] text-editorial-muted">
+            Destacar no 3D
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            ${st.chips.map(ch => {
+              const isHighlighted = state.highlightedKey === ch.key;
+              return `
+                <button data-chip-key="${ch.key}" data-chip-label="${ch.label}" class="chip-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono border transition ${
+                  isHighlighted
+                    ? 'border-editorial-coral bg-editorial-coral/10 text-[#161614] font-medium'
+                    : 'border-[#D5D5CE] bg-white/75 text-[#2C2C2A] hover:border-[#161614]'
+                }">
+                  <span class="w-1.5 h-1.5 rounded-full ${isHighlighted ? 'bg-editorial-coral' : 'bg-[#A8A89E]'}"></span>
+                  ${ch.label}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      card.querySelectorAll('.chip-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.chipKey;
+          if (state.highlightedKey === k) {
+            clearHighlight();
+          } else {
+            highlightPart(k, btn.dataset.chipLabel);
+          }
+        });
+      });
+
+      document.getElementById('btn-prev-step').disabled = state.currentStep === 1;
+      document.getElementById('btn-next-step').disabled = state.currentStep === 6;
+
+      // Preview sutil do próximo passo
+      const previewEl = document.getElementById('next-step-preview');
+      if (previewEl) {
+        if (state.currentStep < STEPS.length) {
+          const nextSt = STEPS[state.currentStep];
+          previewEl.textContent = `${String(nextSt.num).padStart(2, '0')} · ${nextSt.shortTitle}`;
+        } else {
+          previewEl.textContent = 'Montagem completa';
+        }
+      }
+
+      renderXLayers();
+    }
+
+    function renderXLayers() {
+      const container = document.getElementById('x-layers-list');
+      if (!container) return;
+
+      const currentStepObj = STEPS[state.currentStep - 1];
+      const stepActiveKeys = currentStepObj ? currentStepObj.activeLayers : [];
+
+      container.innerHTML = X_LAYERS.map(layer => {
+        const keys = [layer.key, ...(layer.altKeys || [])];
+        const isStepActive = keys.some(k => stepActiveKeys.includes(k));
+        const is3DHighlighted = keys.includes(state.highlightedKey);
+
+        return `
+          <button data-layer-key="${layer.key}" data-layer-label="${layer.label}" class="layer-row w-full flex items-center py-1.5 px-2 -mx-2 rounded-lg text-left transition ${
+            is3DHighlighted
+              ? 'bg-editorial-coral/12 text-[#161614]'
+              : isStepActive
+                ? 'bg-editorial-surface/75 text-[#161614] hover:bg-editorial-surface'
+                : 'text-editorial-muted hover:bg-editorial-surface/50 hover:text-[#161614]'
+          }">
+            <span class="w-4 flex items-center shrink-0 mr-2" aria-hidden="true">
+              <span class="h-[6px] rounded-full transition-all" style="width: ${Math.max(6, Math.round(layer.barW * 0.16))}px; background: ${is3DHighlighted ? '#E86A42' : layer.color};"></span>
+            </span>
+            <span class="text-[12px] leading-none truncate ${isStepActive || is3DHighlighted ? 'font-medium text-[#161614]' : 'font-normal'}">
+              ${layer.label}
+            </span>
+            <span class="leader-dots" aria-hidden="true"></span>
+            <span class="font-mono text-[11px] tabular-nums shrink-0 ${is3DHighlighted ? 'text-editorial-coral font-semibold' : isStepActive ? 'text-[#161614] font-medium' : 'text-editorial-muted'}">
+              ${layer.coord}
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.layer-row').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.layerKey;
+          if (state.highlightedKey === k) {
+            clearHighlight();
+          } else {
+            highlightPart(k, btn.dataset.layerLabel);
+          }
+        });
+      });
+    }
+
+    // Destaque Coral no 3D
+    function highlightPart(key, label = '') {
+      state.highlightedKey = key;
+      Object.keys(matMap).forEach(k => {
+        matMap[k].forEach(m => {
+          if (k === key) {
+            m.emissive.setHex(0xF07552);
+            m.emissiveIntensity = 0.55;
+          } else {
+            m.emissive.setHex(0x000000);
+            m.emissiveIntensity = 0;
+          }
+        });
+      });
+      document.getElementById('highlight-label').textContent = label || key;
+      document.getElementById('highlight-badge').classList.remove('hidden');
+      renderCutList();
+      renderStepUI();
+    }
+
+    function clearHighlight() {
+      state.highlightedKey = null;
+      Object.values(matMap).flat().forEach(m => {
+        m.emissive.setHex(0x000000);
+        m.emissiveIntensity = 0;
+      });
+      document.getElementById('highlight-badge').classList.add('hidden');
+      renderCutList();
+      renderStepUI();
+    }
+
+    function renderCutList() {
+      const tbody = document.getElementById('cutlist-tbody');
+      tbody.innerHTML = CUTS.map((c, idx) => {
+        const active = state.highlightedKey === c.key;
+        return `
+          <tr data-cut-idx="${idx}" class="cut-row cursor-pointer transition ${
+            active ? 'bg-editorial-coral/15 text-editorial-ink font-medium' : 'hover:bg-editorial-bg text-editorial-ink/90'
+          }">
+            <td class="py-2 px-3">${c.name}</td>
+            <td class="py-2 px-1.5 text-center font-mono text-editorial-coral font-semibold">${c.qty}×</td>
+            <td class="py-2 px-3 text-right font-mono text-editorial-muted whitespace-nowrap">${c.dims}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('.cut-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const item = CUTS[parseInt(row.dataset.cutIdx, 10)];
+          highlightPart(item.key, item.name);
+        });
+      });
+    }
+
+    function renderHardware() {
+      const box = document.getElementById('hardware-container');
+      box.innerHTML = HARDWARE.map((h, i) => `
+        <label class="cursor-pointer flex items-center justify-between gap-2.5 p-3 rounded-xl bg-white border border-editorial-line hover:border-editorial-ink/40 transition">
+          <div class="flex items-start gap-2.5 min-w-0">
+            <input type="checkbox" data-hw-idx="${i}" ${h.checked ? 'checked' : ''} class="hw-check mt-0.5 accent-[#1A1A18] cursor-pointer" />
+            <div class="min-w-0">
+              <div class="text-xs leading-snug ${h.checked ? 'text-editorial-ink' : 'text-editorial-muted line-through'}">${h.name}</div>
+              <div class="text-[10px] font-mono text-editorial-muted mt-0.5">${h.qty}</div>
+            </div>
+          </div>
+          <span class="text-xs font-mono font-medium shrink-0 ${h.checked ? 'text-editorial-ink' : 'text-editorial-muted'}">
+            R$ ${h.price.toFixed(2).replace('.', ',')}
+          </span>
+        </label>
+      `).join('');
+
+      box.querySelectorAll('.hw-check').forEach(chk => {
+        chk.addEventListener('change', () => {
+          HARDWARE[parseInt(chk.dataset.hwIdx, 10)].checked = chk.checked;
+          renderHardware();
+        });
+      });
+
+      const total = HARDWARE.reduce((sum, h) => sum + (h.checked ? h.price : 0), 0);
+      document.getElementById('hardware-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+
+    function updateErgonomics() {
+      const dh = GEO.deskHeight;
+      const uh = GEO.userHeight;
+
+      document.getElementById('val-desk-h').textContent = `${dh} cm`;
+      document.getElementById('val-user-h').textContent = `${uh} cm`;
+      document.getElementById('btn-desk').innerHTML = `<span id="dot-desk" class="w-1.5 h-1.5 rounded-full ${state.showDesk ? 'bg-editorial-ink' : 'bg-editorial-muted/40'}"></span> Mesa ${dh}cm`;
+
+      const idealStand = Math.round(uh * 0.633);
+      const hClosed = dh + getKinematics(THETA_MIN_DEG).yTopSurface;
+      const hN3 = dh + getKinematics(59.0).yTopSurface;
+
+      document.getElementById('ergo-ideal').textContent = `${idealStand} cm`;
+      document.getElementById('ergo-closed').textContent = `${hClosed.toFixed(1)} cm`;
+
+      const levelsEl = document.getElementById('ergo-levels');
+      levelsEl.innerHTML = GEO.levels.map(lv => {
+        const hTot = dh + getKinematics(lv.deg).yTopSurface;
+        const isIdeal = Math.abs(hTot - idealStand) <= 2.5;
+        return `
+          <button data-ergo-deg="${lv.deg}" class="ergo-lv-btn w-full flex items-center justify-between px-3 py-2 rounded-xl border transition ${
+            isIdeal
+              ? 'bg-editorial-coral/10 border-editorial-coral/40 text-editorial-ink'
+              : 'bg-editorial-bg border-editorial-line hover:border-editorial-ink/40 text-editorial-ink'
+          }">
+            <span class="text-xs font-medium">${lv.label} <span class="font-mono text-[10px] text-editorial-muted">(${lv.deg.toFixed(lv.deg < 6 ? 2 : 0)}°)</span></span>
+            <span class="font-mono text-xs font-semibold">${hTot.toFixed(1)} cm</span>
+          </button>
+        `;
+      }).join('');
+
+      levelsEl.querySelectorAll('.ergo-lv-btn').forEach(btn => {
+        btn.addEventListener('click', () => animateToTheta(parseFloat(btn.dataset.ergoDeg)));
+      });
+
+      const diff = hN3 - idealStand;
+      const note = document.getElementById('ergo-note');
+      if (Math.abs(diff) <= 3.0) {
+        note.innerHTML = `<strong>Encaixe perfeito:</strong> no nível <strong>N3 (59°)</strong> o tampo alcança <strong>${hN3.toFixed(1)} cm</strong>, alinhado à altura ideal de cotovelo (<strong>${idealStand} cm</strong>) para ${uh} cm de estatura — com 1,0 cm de madeira maciça sob o bastão.`;
+      } else if (diff < -3.0) {
+        note.innerHTML = `<strong>Faltam ~${Math.abs(diff).toFixed(0)} cm em pé:</strong> para ${uh} cm sobre mesa de ${dh} cm, aumente os braços paralelos para <strong>${Math.round(GEO.L + Math.abs(diff) / 0.85)} cm</strong> entre centros.`;
+      } else {
+        note.innerHTML = `<strong>Folga de curso:</strong> o nível intermediário <strong>N2 (47° • ${(dh + getKinematics(47).yTopSurface).toFixed(1)} cm)</strong> já atende seu alvo ergonômico de ${idealStand} cm com conforto.`;
+      }
+
+      updateKinematics();
+    }
+
+    // =========================================================================
+    // 7. EVENT LISTENERS E INICIALIZAÇÃO
+    // =========================================================================
+    document.querySelectorAll('.cam-btn').forEach(btn => {
+      btn.addEventListener('click', () => setCameraView(btn.dataset.cam));
+    });
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => animateToTheta(parseFloat(btn.dataset.preset)));
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    document.getElementById('btn-unlock').addEventListener('click', runUnlockSimulation);
+    document.getElementById('btn-clear-highlight').addEventListener('click', clearHighlight);
+    document.getElementById('btn-clear-cuts').addEventListener('click', clearHighlight);
+    document.getElementById('btn-show-all').addEventListener('click', () => selectStep(6, false));
+    document.getElementById('btn-prev-step').addEventListener('click', () => selectStep(state.currentStep - 1, true));
+    document.getElementById('btn-next-step').addEventListener('click', () => selectStep(state.currentStep + 1, true));
+
+    document.getElementById('btn-translucent').addEventListener('click', () => {
+      state.translucentTop = !state.translucentTop;
+      matMap.top.forEach(m => {
+        m.transparent = state.translucentTop;
+        m.opacity = state.translucentTop ? 0.36 : 1.0;
+        m.needsUpdate = true;
+      });
+      document.getElementById('dot-translucent').className = state.translucentTop
+        ? 'w-1.5 h-1.5 rounded-full bg-editorial-coral'
+        : 'w-1.5 h-1.5 rounded-full bg-editorial-muted/40';
+    });
+
+    document.getElementById('btn-desk').addEventListener('click', () => {
+      state.showDesk = !state.showDesk;
+      groups.desk.visible = state.showDesk;
+      document.getElementById('dot-desk').className = state.showDesk
+        ? 'w-1.5 h-1.5 rounded-full bg-editorial-ink'
+        : 'w-1.5 h-1.5 rounded-full bg-editorial-muted/40';
+    });
+
+    document.getElementById('slider-explode').addEventListener('input', e => {
+      const val = parseInt(e.target.value, 10);
+      state.explode = val / 100;
+      document.getElementById('lbl-explode').textContent = `${val}%`;
+      updateKinematics();
+    });
+
+    document.getElementById('slider-desk-h').addEventListener('input', e => {
+      GEO.deskHeight = parseInt(e.target.value, 10);
+      updateErgonomics();
+    });
+
+    document.getElementById('slider-user-h').addEventListener('input', e => {
+      GEO.userHeight = parseInt(e.target.value, 10);
+      updateErgonomics();
+    });
+
+    try {
+      initScene();
+      renderStepUI();
+      renderCutList();
+      renderHardware();
+      updateErgonomics();
+    } catch (err) {
+      console.error('Erro ao iniciar o manual 3D:', err);
+    }
+  </script>
+</body>
+</html>
